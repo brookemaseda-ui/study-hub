@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Hub</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #f4f4f4;
+}
+
+.dark {
+    background: #222;
+    color: white;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.dark .card {
+    background: #333;
+}
+
+button {
+    padding: 8px 12px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+input, select {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0;
+}
+
+.assignment {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+}
+
+.completed {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.progress {
+    width: 100%;
+    background: #ddd;
+    height: 25px;
+    border-radius: 10px;
+}
+
+.progress-bar {
+    height: 25px;
+    width: 0%;
+    background: green;
+    border-radius: 10px;
+}
+</style>
+</head>
+<body>
+
+<h1>📚 Study Hub</h1>
+
+<button id="darkModeBtn">Toggle Dark Mode</button>
+
+<div class="card">
+    <h2>Pomodoro Timer</h2>
+    <h1 id="timer">25:00</h1>
+
+    <button onclick="startTimer()">Start</button>
+    <button onclick="pauseTimer()">Pause</button>
+    <button onclick="resetTimer()">Reset</button>
+</div>
+
+<div class="card">
+    <h2>Add Assignment</h2>
+
+    <input type="text" id="title" placeholder="Assignment Name">
+
+    <input type="text" id="course" placeholder="Course">
+
+    <select id="priority">
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+    </select>
+
+    <button onclick="addAssignment()">Add Assignment</button>
+</div>
+
+<div class="card">
+    <h2>Progress</h2>
+
+    <div class="progress">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <p id="progressText">0% Complete</p>
+</div>
+
+<div class="card">
+    <h2>Assignments</h2>
+    <div id="assignmentList"></div>
+</div>
+
+<script>
+let assignments =
+JSON.parse(localStorage.getItem("assignments")) || [];
+
+let seconds = 1500;
+let interval = null;
+
+function updateTimer() {
+    let mins = Math.floor(seconds / 60);
+    let secs = seconds % 60;
+
+    document.getElementById("timer").textContent =
+        String(mins).padStart(2, "0") + ":" +
+        String(secs).padStart(2, "0");
+}
+
+function startTimer() {
+
+    if (interval) return;
+
+    interval = setInterval(() => {
+        seconds--;
+
+        if (seconds <= 0) {
+            clearInterval(interval);
+            interval = null;
+            alert("Pomodoro complete!");
+        }
+
+        updateTimer();
+
+    }, 1000);
+}
+
+function pauseTimer() {
+    clearInterval(interval);
+    interval = null;
+}
+
+function resetTimer() {
+    pauseTimer();
+    seconds = 1500;
+    updateTimer();
+}
+
+function saveData() {
+    localStorage.setItem(
+        "assignments",
+        JSON.stringify(assignments)
+    );
+}
+
+function addAssignment() {
+
+    const title =
+        document.getElementById("title").value;
+
+    const course =
+        document.getElementById("course").value;
+
+    const priority =
+        document.getElementById("priority").value;
+
+    if (title === "" || course === "") {
+        alert("Fill in all fields");
+        return;
+    }
+
+    assignments.push({
+        id: Date.now(),
+        title,
+        course,
+        priority,
+        complete: false
+    });
+
+    saveData();
+    renderAssignments();
+
+    document.getElementById("title").value = "";
+    document.getElementById("course").value = "";
+}
+
+function toggleAssignment(id) {
+
+    assignments.forEach(a => {
+        if (a.id === id) {
+            a.complete = !a.complete;
+        }
+    });
+
+    saveData();
+    renderAssignments();
+}
+
+function deleteAssignment(id) {
+
+    assignments =
+        assignments.filter(a => a.id !== id);
+
+    saveData();
+    renderAssignments();
+}
+
+function renderAssignments() {
+
+    const list =
+        document.getElementById("assignmentList");
+
+    list.innerHTML = "";
+
+    let completed = 0;
+
+    assignments.forEach(a => {
+
+        if (a.complete) completed++;
+
+        const div =
+            document.createElement("div");
+
+        div.className =
+            "assignment " +
+            (a.complete ? "completed" : "");
+
+        div.innerHTML = `
+            <strong>${a.title}</strong><br>
+            ${a.course}<br>
+            Priority: ${a.priority}<br>
+
+            <button onclick="toggleAssignment(${a.id})">
+                ${a.complete ? "Undo" : "Complete"}
+            </button>
+
+            <button onclick="deleteAssignment(${a.id})">
+                Delete
+            </button>
+        `;
+
+        list.appendChild(div);
+    });
+
+    let percent =
+        assignments.length === 0
+        ? 0
+        : Math.round(
+            completed / assignments.length * 100
+        );
+
+    document.getElementById("progressBar")
+        .style.width = percent + "%";
+
+    document.getElementById("progressText")
+        .textContent =
+        percent + "% Complete";
+}
+
+document
+.getElementById("darkModeBtn")
+.addEventListener("click", () => {
+
+    document.body.classList.toggle("dark");
+});
+
+updateTimer();
+renderAssignments();
+</script>
+
+</body>
+</html>
